@@ -42,8 +42,12 @@ Visit `http://localhost:7860/docs` for the API documentation. There's only one r
 - The parsed elements in a list with text descriptions
 - The bounding box coordinates of the parsed elements
 
-
 ## Examples
-| Before Image | After Image |
-|--------------|-------------|
+
+| Before Image                       | After Image                   |
+| ---------------------------------- | ----------------------------- |
 | ![Before](examples/screenshot.png) | ![After](examples/after.webp) |
+
+## Related Projects
+
+Check out [OneQuery](https://query-rho.vercel.app), an agent that browses the web and returns structured responses for any query, simple or complex. OneQuery is built using OmniParser to enhance its capabilities.
