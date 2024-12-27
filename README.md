@@ -51,3 +51,5 @@ Visit `http://localhost:7860/docs` for the API documentation. There's only one r
 ## Related Projects
 
 Check out [OneQuery](https://query-rho.vercel.app), an agent that browses the web and returns structured responses for any query, simple or complex. OneQuery is built using OmniParser to enhance its capabilities.
+
+python -m uvicorn main:app --host 0.0.0.0 --port 7860

@@ -1,13 +1,13 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, Request, UploadFile, HTTPException
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict, List
 import base64
 import io
 from PIL import Image
 import torch
 import numpy as np
-import os
 
 # Existing imports
 import numpy as np
@@ -42,28 +42,32 @@ processor = AutoProcessor.from_pretrained(
     "microsoft/Florence-2-base", trust_remote_code=True
 )
 
-try:
+if torch.cuda.is_available():
     model = AutoModelForCausalLM.from_pretrained(
         "weights/icon_caption_florence",
         torch_dtype=torch.float16,
         trust_remote_code=True,
     ).to("cuda")
-except:
+else:
     model = AutoModelForCausalLM.from_pretrained(
         "weights/icon_caption_florence",
-        torch_dtype=torch.float16,
         trust_remote_code=True,
     )
+
 caption_model_processor = {"processor": processor, "model": model}
 print("finish loading model!!!")
 
 app = FastAPI()
 
+class ProcessRequest(BaseModel):
+    image_base64: str
+    box_threshold: float = 0.05
+    iou_threshold: float = 0.1
 
 class ProcessResponse(BaseModel):
     image: str  # Base64 encoded image
-    parsed_content_list: str
-    label_coordinates: str
+    parsed_content_list: List[str]
+    label_coordinates: Dict[str, List[float]]
 
 
 def process(
@@ -109,24 +113,31 @@ def process(
     image.save(buffered, format="PNG")
     img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
+    processed_image_save_path = "imgs/processed_image_demo.png"
+    image.save(processed_image_save_path)
+
     return ProcessResponse(
         image=img_str,
-        parsed_content_list=str(parsed_content_list_str),
-        label_coordinates=str(label_coordinates),
+        parsed_content_list=parsed_content_list,
+        label_coordinates=label_coordinates,
     )
 
 
+
 @app.post("/process_image", response_model=ProcessResponse)
-async def process_image(
-    image_file: UploadFile = File(...),
-    box_threshold: float = 0.05,
-    iou_threshold: float = 0.1,
-):
+async def process_image(request: ProcessRequest):
     try:
-        contents = await image_file.read()
-        image_input = Image.open(io.BytesIO(contents)).convert("RGB")
+        image_input = Image.open(io.BytesIO(base64.b64decode(request.image_base64))).convert("RGB")
     except Exception as e:
         raise HTTPException(status_code=400, detail="Invalid image file")
 
-    response = process(image_input, box_threshold, iou_threshold)
+    response = process(image_input, request.box_threshold, request.iou_threshold)
     return response
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    exc_str = f'{exc}'.replace('\n', ' ').replace('   ', ' ')
+    # or logger.error(f'{exc}')
+    print(request, exc_str)
+    content = {'status_code': 10422, 'message': exc_str, 'data': None}
+    return JSONResponse(content=content, status_code=422)
