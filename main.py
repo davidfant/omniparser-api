@@ -1,3 +1,4 @@
+import time
 from fastapi import FastAPI, File, Request, UploadFile, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -31,11 +32,6 @@ from ultralytics import YOLO
 # if not os.path.exists("/data/icon_detect"):
 #     os.makedirs("/data/icon_detect")
 
-try:
-    yolo_model = YOLO("weights/icon_detect/best.pt").to("cuda")
-except:
-    yolo_model = YOLO("weights/icon_detect/best.pt")
-
 from transformers import AutoProcessor, AutoModelForCausalLM
 
 processor = AutoProcessor.from_pretrained(
@@ -43,16 +39,22 @@ processor = AutoProcessor.from_pretrained(
 )
 
 if torch.cuda.is_available():
+    yolo_model = YOLO("weights/icon_detect/best.pt").to("cuda")
     model = AutoModelForCausalLM.from_pretrained(
         "weights/icon_caption_florence",
         torch_dtype=torch.float16,
         trust_remote_code=True,
     ).to("cuda")
+
+    print('using gpu')
 else:
+    yolo_model = YOLO("weights/icon_detect/best.pt")
     model = AutoModelForCausalLM.from_pretrained(
         "weights/icon_caption_florence",
         trust_remote_code=True,
     )
+
+    print('using cpu')
 
 caption_model_processor = {"processor": processor, "model": model}
 print("finish loading model!!!")
@@ -84,6 +86,7 @@ def process(
         "thickness": max(int(3 * box_overlay_ratio), 1),
     }
 
+    start_at = time.time()
     ocr_bbox_rslt, is_goal_filtered = check_ocr_box(
         image_save_path,
         display_img=False,
@@ -92,6 +95,9 @@ def process(
         easyocr_args={"paragraph": False, "text_threshold": 0.9},
         use_paddleocr=True,
     )
+    end_at = time.time()
+    print(f'ocr time: {end_at - start_at}')
+
     text, ocr_bbox = ocr_bbox_rslt
     dino_labled_img, label_coordinates, parsed_content_list = get_som_labeled_img(
         image_save_path,
@@ -113,8 +119,8 @@ def process(
     image.save(buffered, format="PNG")
     img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
-    processed_image_save_path = "imgs/processed_image_demo.png"
-    image.save(processed_image_save_path)
+    # processed_image_save_path = "imgs/processed_image_demo.png"
+    # image.save(processed_image_save_path)
 
     return ProcessResponse(
         image=img_str,

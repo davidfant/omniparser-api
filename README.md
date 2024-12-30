@@ -52,4 +52,21 @@ Visit `http://localhost:7860/docs` for the API documentation. There's only one r
 
 Check out [OneQuery](https://query-rho.vercel.app), an agent that browses the web and returns structured responses for any query, simple or complex. OneQuery is built using OmniParser to enhance its capabilities.
 
-python -m uvicorn main:app --host 0.0.0.0 --port 7860
+apt update && apt upgrade -y
+apt install git-lfs -y
+apt install ncdu -y
+git clone https://huggingface.co/microsoft/OmniParser
+mv OmniParser/icon_detect omniparser-api/weights/icon_detect
+mv OmniParser/icon_caption_florence omniparser-api/weights/icon_caption_florence
+
+git clone https://github.com/davidfant/omniparser-api
+cd omniparser-api/
+python3 -m venv venv
+venv/bin/python3 -m pip install -r requirements.txt
+venv/bin/python3 -m pip uninstall pandas
+venv/bin/python3 -m pip install pandas
+mkdir imgs
+venv/bin/python3 weights/convert_safetensor_to_pt.py
+
+pkill jupyter
+nohup venv/bin/python3 -m uvicorn main:app --host 0.0.0.0 --port 8888 > nohup.output &
