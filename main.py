@@ -107,7 +107,8 @@ def process(
         draw_bbox_config=draw_bbox_config,
         caption_model_processor=caption_model_processor,
         ocr_bbox=None, # ocr_bbox,
-        ocr_text=None, # text,
+        ocr_text=[], # text,
+        use_local_semantics=False,
         iou_threshold=iou_threshold,
     )
     image = Image.open(io.BytesIO(base64.b64decode(dino_labled_img)))
