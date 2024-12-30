@@ -267,8 +267,11 @@ def predict(model, image, caption, box_threshold, text_threshold):
     device = model.device
 
     inputs = processor(images=image, text=caption, return_tensors="pt").to(device)
+    start_at = time.time()
     with torch.no_grad():
         outputs = model(**inputs)
+    end_at = time.time()
+    print(f'model time: {end_at - start_at}')
 
     results = processor.post_process_grounded_object_detection(
         outputs,
@@ -285,6 +288,8 @@ def predict_yolo(model, image_path, box_threshold, imgsz):
     """ Use huggingface model to replace the original model
     """
     # model = model['model']
+
+    start_at = time.time()
     
     result = model.predict(
     source=image_path,
@@ -295,6 +300,9 @@ def predict_yolo(model, image_path, box_threshold, imgsz):
     boxes = result[0].boxes.xyxy#.tolist() # in pixel space
     conf = result[0].boxes.conf
     phrases = [str(i) for i in range(len(boxes))]
+
+    end_at = time.time()
+    print(f'yolo time: {end_at - start_at}')
 
     return boxes, conf, phrases
 
