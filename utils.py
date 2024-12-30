@@ -333,14 +333,21 @@ def get_som_labeled_img(img_path, model=None, BOX_TRESHOLD = 0.01, output_coord_
         print('no ocr bbox!!!')
         ocr_bbox = None
     filtered_boxes = remove_overlap(boxes=xyxy, iou_threshold=iou_threshold, ocr_bbox=ocr_bbox)
+
+    print('xyxy', xyxy)
+    print('filtered_boxes', filtered_boxes)
+    print('ocr_bbox', ocr_bbox)
     
     # get parsed icon local semantics
     if use_local_semantics:
+        start_at = time.time()
         caption_model = caption_model_processor['model']
         if 'phi3_v' in caption_model.config.model_type: 
             parsed_content_icon = get_parsed_content_icon_phi3v(filtered_boxes, ocr_bbox, image_source, caption_model_processor)
         else:
             parsed_content_icon = get_parsed_content_icon(filtered_boxes, ocr_bbox, image_source, caption_model_processor, prompt=prompt)
+        end_at = time.time()
+        print(f'parsed_content_icon time: {end_at - start_at}')
         ocr_text = [f"Text Box ID {i}: {txt}" for i, txt in enumerate(ocr_text)]
         icon_start = len(ocr_text)
         parsed_content_icon_ls = []
@@ -369,6 +376,8 @@ def get_som_labeled_img(img_path, model=None, BOX_TRESHOLD = 0.01, output_coord_
         # h, w, _ = image_source.shape
         label_coordinates = {k: [v[0]/w, v[1]/h, v[2]/w, v[3]/h] for k, v in label_coordinates.items()}
         assert w == annotated_frame.shape[1] and h == annotated_frame.shape[0]
+
+    print('label_coordinates', label_coordinates)
 
     return encoded_image, label_coordinates, parsed_content_merged
 
