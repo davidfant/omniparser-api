@@ -86,18 +86,18 @@ def process(
         "thickness": max(int(3 * box_overlay_ratio), 1),
     }
 
-    # start_at = time.time()
-    # ocr_bbox_rslt, is_goal_filtered = check_ocr_box(
-    #     image_save_path,
-    #     display_img=False,
-    #     output_bb_format="xyxy",
-    #     goal_filtering=None,
-    #     easyocr_args={"paragraph": False, "text_threshold": 0.9},
-    #     use_paddleocr=True,
-    # )
-    # text, ocr_bbox = ocr_bbox_rslt
-    # end_at = time.time()
-    # print(f'ocr time: {end_at - start_at}')
+    start_at = time.time()
+    ocr_bbox_rslt, is_goal_filtered = check_ocr_box(
+        image_save_path,
+        display_img=False,
+        output_bb_format="xyxy",
+        goal_filtering=None,
+        easyocr_args={"paragraph": False, "text_threshold": 0.9},
+        use_paddleocr=True,
+    )
+    text, ocr_bbox = ocr_bbox_rslt
+    end_at = time.time()
+    print(f'ocr time: {end_at - start_at}')
 
     dino_labled_img, label_coordinates, parsed_content_list = get_som_labeled_img(
         image_save_path,
@@ -106,8 +106,8 @@ def process(
         output_coord_in_ratio=True,
         draw_bbox_config=draw_bbox_config,
         caption_model_processor=caption_model_processor,
-        ocr_bbox=None, # ocr_bbox,
-        ocr_text=[], # text,
+        ocr_bbox=ocr_bbox,
+        ocr_text=text,
         use_local_semantics=False,
         iou_threshold=iou_threshold,
     )

@@ -8,7 +8,6 @@ import json
 import requests
 # utility function
 import os
-from openai import AzureOpenAI
 
 import json
 import sys
@@ -17,18 +16,6 @@ import cv2
 import numpy as np
 # %matplotlib inline
 from matplotlib import pyplot as plt
-import easyocr
-from paddleocr import PaddleOCR
-reader = easyocr.Reader(['en'])
-paddle_ocr = PaddleOCR(
-    lang='en',  # other lang also available
-    use_angle_cls=False,
-    use_gpu=True,  # using cuda will conflict with pytorch in the same process
-    show_log=False,
-    max_batch_size=1024,
-    use_dilation=True,  # improves accuracy
-    det_db_score_mode='slow',  # improves accuracy
-    rec_batch_num=1024)
 import time
 import base64
 
@@ -334,9 +321,9 @@ def get_som_labeled_img(img_path, model=None, BOX_TRESHOLD = 0.01, output_coord_
         ocr_bbox = None
     filtered_boxes = remove_overlap(boxes=xyxy, iou_threshold=iou_threshold, ocr_bbox=ocr_bbox)
 
-    print('xyxy', xyxy)
-    print('filtered_boxes', filtered_boxes)
-    print('ocr_bbox', ocr_bbox)
+    # print('xyxy', xyxy)
+    # print('filtered_boxes', filtered_boxes)
+    # print('ocr_bbox', ocr_bbox)
     
     # get parsed icon local semantics
     if use_local_semantics:
@@ -377,7 +364,7 @@ def get_som_labeled_img(img_path, model=None, BOX_TRESHOLD = 0.01, output_coord_
         label_coordinates = {k: [v[0]/w, v[1]/h, v[2]/w, v[3]/h] for k, v in label_coordinates.items()}
         assert w == annotated_frame.shape[1] and h == annotated_frame.shape[0]
 
-    print('label_coordinates', label_coordinates)
+    # print('label_coordinates', label_coordinates)
 
     return encoded_image, label_coordinates, parsed_content_merged
 
@@ -401,10 +388,23 @@ def get_xywh_yolo(input):
 
 def check_ocr_box(image_path, display_img = True, output_bb_format='xywh', goal_filtering=None, easyocr_args=None, use_paddleocr=False):
     if use_paddleocr:
+        from paddleocr import PaddleOCR
+        paddle_ocr = PaddleOCR(
+            lang='en',  # other lang also available
+            use_angle_cls=False,
+            use_gpu=True,  # using cuda will conflict with pytorch in the same process
+            show_log=False,
+            max_batch_size=1024,
+            use_dilation=True,  # improves accuracy
+            det_db_score_mode='slow',  # improves accuracy
+            rec_batch_num=1024)
+
         result = paddle_ocr.ocr(image_path, cls=False)[0]
         coord = [item[0] for item in result]
         text = [item[1][0] for item in result]
     else:  # EasyOCR
+        import easyocr
+        reader = easyocr.Reader(['en'])
         if easyocr_args is None:
             easyocr_args = {}
         result = reader.readtext(image_path, **easyocr_args)

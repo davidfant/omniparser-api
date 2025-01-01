@@ -55,9 +55,16 @@ Check out [OneQuery](https://query-rho.vercel.app), an agent that browses the we
 apt update && apt upgrade -y
 apt install git-lfs -y
 apt install ncdu -y
-git clone https://huggingface.co/microsoft/OmniParser
+
+cudnn_version=8.6.0.163
+cuda_version=cuda11.8
+apt-get install libcudnn8=${cudnn_version}-1+${cuda_version} \
+                libcudnn8-dev=${cudnn_version}-1+${cuda_version}
+
+git clone --depth 1 https://huggingface.co/microsoft/OmniParser
 mv OmniParser/icon_detect omniparser-api/weights/icon_detect
 mv OmniParser/icon_caption_florence omniparser-api/weights/icon_caption_florence
+rm -rf OmniParser/.git OmniParser/icon_detect_v1_5
 
 git clone https://github.com/davidfant/omniparser-api
 cd omniparser-api/
