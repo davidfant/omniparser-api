@@ -12,4 +12,4 @@ timm
 einops==0.8.0
 paddleocr
 paddlepaddle-gpu==2.6.1 -i https://pypi.tuna.tsinghua.edu.cn/simple
-fastapi
+fastapi[all]

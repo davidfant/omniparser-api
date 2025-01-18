@@ -216,7 +216,7 @@ def load_image(image_path: str) -> Tuple[np.array, torch.Tensor]:
 
 
 def annotate(image_source: np.ndarray, boxes: torch.Tensor, logits: torch.Tensor, phrases: List[str], text_scale: float, 
-             text_padding=5, text_thickness=2, thickness=3) -> np.ndarray:
+             text_padding=5, text_thickness=2, thickness=3, id_prefix: str | None = None) -> np.ndarray:
     """    
     This function annotates an image with bounding boxes and labels.
 
@@ -236,7 +236,7 @@ def annotate(image_source: np.ndarray, boxes: torch.Tensor, logits: torch.Tensor
     xywh = box_convert(boxes=boxes, in_fmt="cxcywh", out_fmt="xywh").numpy()
     detections = sv.Detections(xyxy=xyxy)
 
-    labels = [f"{phrase}" for phrase in range(boxes.shape[0])]
+    labels = [f"{id_prefix or ''}{phrase}" for phrase in range(boxes.shape[0])]
 
     from util.box_annotator import BoxAnnotator 
     box_annotator = BoxAnnotator(text_scale=text_scale, text_padding=text_padding,text_thickness=text_thickness,thickness=thickness) # 0.8 for mobile/web, 0.3 for desktop # 0.4 for mind2web
@@ -294,7 +294,7 @@ def predict_yolo(model, image_path, box_threshold, imgsz):
     return boxes, conf, phrases
 
 
-def get_som_labeled_img(img_path, model=None, BOX_TRESHOLD = 0.01, output_coord_in_ratio=False, ocr_bbox=None, text_scale=0.4, text_padding=5, draw_bbox_config=None, caption_model_processor=None, ocr_text=[], use_local_semantics=True, iou_threshold=0.9,prompt=None,imgsz=640):
+def get_som_labeled_img(img_path, model=None, BOX_TRESHOLD = 0.01, output_coord_in_ratio=False, ocr_bbox=None, text_scale=0.4, text_padding=5, draw_bbox_config=None, caption_model_processor=None, ocr_text=[], use_local_semantics=True, iou_threshold=0.9,prompt=None,imgsz=640, id_prefix: str | None = None):
     """ ocr_bbox: list of xyxy format bbox
     """
     TEXT_PROMPT = "clickable buttons on the screen"
@@ -335,14 +335,14 @@ def get_som_labeled_img(img_path, model=None, BOX_TRESHOLD = 0.01, output_coord_
             parsed_content_icon = get_parsed_content_icon(filtered_boxes, ocr_bbox, image_source, caption_model_processor, prompt=prompt)
         end_at = time.time()
         print(f'parsed_content_icon time: {end_at - start_at}')
-        ocr_text = [f"Text Box ID {i}: {txt}" for i, txt in enumerate(ocr_text)]
+        ocr_text = [f"Text Box ID {id_prefix or ''}{i}: {txt}" for i, txt in enumerate(ocr_text)]
         icon_start = len(ocr_text)
         parsed_content_icon_ls = []
         for i, txt in enumerate(parsed_content_icon):
             parsed_content_icon_ls.append(f"Icon Box ID {str(i+icon_start)}: {txt}")
         parsed_content_merged = ocr_text + parsed_content_icon_ls
     else:
-        ocr_text = [f"Text Box ID {i}: {txt}" for i, txt in enumerate(ocr_text)]
+        ocr_text = [f"Text Box ID {id_prefix or ''}{i}: {txt}" for i, txt in enumerate(ocr_text)]
         parsed_content_merged = ocr_text
 
     filtered_boxes = box_convert(boxes=filtered_boxes, in_fmt="xyxy", out_fmt="cxcywh")
@@ -351,9 +351,9 @@ def get_som_labeled_img(img_path, model=None, BOX_TRESHOLD = 0.01, output_coord_
     
     # draw boxes
     if draw_bbox_config:
-        annotated_frame, label_coordinates = annotate(image_source=image_source, boxes=filtered_boxes, logits=logits, phrases=phrases, **draw_bbox_config)
+        annotated_frame, label_coordinates = annotate(image_source=image_source, boxes=filtered_boxes, logits=logits, phrases=phrases, id_prefix=id_prefix, **draw_bbox_config)
     else:
-        annotated_frame, label_coordinates = annotate(image_source=image_source, boxes=filtered_boxes, logits=logits, phrases=phrases, text_scale=text_scale, text_padding=text_padding)
+        annotated_frame, label_coordinates = annotate(image_source=image_source, boxes=filtered_boxes, logits=logits, phrases=phrases, text_scale=text_scale, text_padding=text_padding, id_prefix=id_prefix)
     
     pil_img = Image.fromarray(annotated_frame)
     buffered = io.BytesIO()

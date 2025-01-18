@@ -65,25 +65,27 @@ class ProcessRequest(BaseModel):
     image_base64: str
     box_threshold: float = 0.05
     iou_threshold: float = 0.1
+    id_prefix: str | None = None
 
 class ProcessResponse(BaseModel):
     image: str  # Base64 encoded image
     parsed_content_list: List[str]
     label_coordinates: Dict[str, List[float]]
+    ids: List[str]
 
 
 def process(
-    image_input: Image.Image, box_threshold: float, iou_threshold: float
+    image_input: Image.Image, box_threshold: float, iou_threshold: float, id_prefix: str | None = None
 ) -> ProcessResponse:
     image_save_path = "imgs/saved_image_demo.png"
     image_input.save(image_save_path)
     image = Image.open(image_save_path)
     box_overlay_ratio = image.size[0] / 3200
     draw_bbox_config = {
-        "text_scale": 0.8 * box_overlay_ratio,
-        "text_thickness": max(int(2 * box_overlay_ratio), 1),
-        "text_padding": max(int(3 * box_overlay_ratio), 1),
-        "thickness": max(int(3 * box_overlay_ratio), 1),
+        "text_scale": 1.4 * box_overlay_ratio,
+        "text_thickness": max(int(4 * box_overlay_ratio), 1),
+        "text_padding": max(int(6 * box_overlay_ratio), 1),
+        "thickness": max(int(6 * box_overlay_ratio), 1),
     }
 
     start_at = time.time()
@@ -110,6 +112,7 @@ def process(
         ocr_text=text,
         use_local_semantics=False,
         iou_threshold=iou_threshold,
+        id_prefix=id_prefix,
     )
     image = Image.open(io.BytesIO(base64.b64decode(dino_labled_img)))
     print("finish processing")
@@ -123,10 +126,12 @@ def process(
     # processed_image_save_path = "imgs/processed_image_demo.png"
     # image.save(processed_image_save_path)
 
+    print('ids...', [f"{id_prefix or ''}{i}" for i in range(len(parsed_content_list))])
     return ProcessResponse(
         image=img_str,
         parsed_content_list=parsed_content_list,
         label_coordinates=label_coordinates,
+        ids=[f"{id_prefix or ''}{i}" for i in range(len(parsed_content_list))],
     )
 
 
@@ -138,7 +143,7 @@ async def process_image(request: ProcessRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail="Invalid image file")
 
-    response = process(image_input, request.box_threshold, request.iou_threshold)
+    response = process(image_input, request.box_threshold, request.iou_threshold, request.id_prefix)
     return response
 
 @app.exception_handler(RequestValidationError)
